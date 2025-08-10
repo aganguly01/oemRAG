@@ -1,0 +1,52 @@
+“How do I reset my corporate laptop password?”
+
+“What are the steps to request VPN access?”
+
+“Why is CPU usage spiking in my Kubernetes pod?”
+
+“How can I troubleshoot payment gateway timeouts?”
+
+“Show logs for database connection pool exhaustion.”
+
+Troubleshooting & Incident Questions (Logs/Monitoring)
+
+Why is CPU usage spiking in my Kubernetes pod?
+
+How can I troubleshoot payment gateway timeouts?
+
+Show logs for database connection pool exhaustion.
+
+What steps can I take when MongoDB CPU usage spikes?
+
+How do I diagnose DynamoDB read/write latency spikes?
+
+How to investigate memory leaks in a Java microservice?
+
+How to identify root cause for API endpoint timeouts?
+
+How to detect cascading failures between microservices?
+
+How to check pod restart loops in Kubernetes?
+
+What could cause high disk I/O in my Postgres cluster?
+
+
+Confluence/Knowledge Base–style (Runbooks/Playbooks)
+
+Who should I contact if there’s a payment processing outage?
+
+What’s the escalation process for database connection errors?
+
+What steps should I follow when an API times out in production?
+
+Where can I find the runbook for restarting the payment gateway service?
+
+What is the SOP for handling endpoint timeouts in the order service?
+
+How do I request a temporary increase in DynamoDB read capacity?
+
+Which Slack channel is used for critical incident communication?
+
+What’s the recommended action if Kafka consumer lag spikes?
+
+
