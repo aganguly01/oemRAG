@@ -161,3 +161,34 @@ Reduced tool switching
 No external API needed (governance-friendly)
 
 Scalable to any new data source
+
+
+User Input (Query) 
+        │
+        ▼
+Streamlit UI ──▶ Vectorization (Embedding Model)
+        │                  │
+        │                  ▼
+        │           Query Vector (numeric)
+        │                  │
+        ▼                  ▼
+ Backend Python Code ──▶ ChromaDB Vector Search
+        │                  │
+        │         Top-k Closest Matching Docs (text + metadata)
+        │                  │
+        ├───────────────┬──┘
+        │               │
+  No LLM Path      LLM Path (Optional)
+        │               │
+        ▼               ▼
+ Show Retrieved     Pass Retrieved Docs
+   Context            + Query to LLM
+        │               │
+        ▼               ▼
+ Display Results    LLM Generates Answer
+                    (Refine / MapReduce / Stuffing)
+                        │
+                        ▼
+                 Display Final Answer
+
+
