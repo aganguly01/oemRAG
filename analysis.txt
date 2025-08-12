@@ -113,3 +113,51 @@ Improve answer quality with advanced retrieval and model fine-tuning.
 Add feedback loops for continuous learning.
 
 This demo illustrates how Retrieval-Augmented Generation (RAG) can transform enterprise support by bridging large document collections with AI-powered Q&A.
+
+
+///////////////////////////////////
+
+From Data Chaos to Instant Answers — RAG Assistant Overview
+
+[Left side: “Today” — messy arrows everywhere]
+
+Confluence
+
+Splunk logs
+
+New Relic metrics
+
+MongoDB queries
+
+Service availability docs
+
+(Arrows crisscrossing to "Engineer / Analyst", showing confusion and time waste.)
+
+[Right side: “With RAG Assistant” — clean arrows]
+Data Sources → Vector Database (ChromaDB) → Optional AI → Streamlit UI
+
+Index Data
+
+Pulls latest from all sources (structured + unstructured).
+
+Smart Search
+
+Finds relevant answers instantly via vector similarity search.
+
+Optional AI Summarization
+
+LLM condenses results for easy understanding.
+
+Instant Access
+
+Ask in plain English, get consistent answers.
+
+Value Callout at Bottom:
+
+10–15% faster resolution on incidents
+
+Reduced tool switching
+
+No external API needed (governance-friendly)
+
+Scalable to any new data source
