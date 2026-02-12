@@ -1,0 +1,42 @@
+[
+  {
+    "id": "doc_0",
+    "content": "CPU usage spiking in Kubernetes pod can be due to high traffic, inefficient code loops, or memory leaks. Check pod metrics using `kubectl top pods`, review application profiling logs, and consider horizontal pod autoscaling."
+  },
+  {
+    "id": "doc_1",
+    "content": "MongoDB connection spikes can occur when too many concurrent requests hit the database. Check connection pool settings, slow queries using `db.currentOp()`, and ensure indexes are optimized."
+  },
+  {
+    "id": "doc_2",
+    "content": "DynamoDB read/write capacity spikes might be caused by batch jobs or sudden traffic surges. Enable auto-scaling, use caching (e.g., DAX), and optimize query patterns to reduce hot partitions."
+  },
+  {
+    "id": "doc_3",
+    "content": "Freeze errors in services may be due to deadlocks, infinite loops, or blocking I/O calls. Use thread dumps or profiling tools to identify bottlenecks and refactor long-running operations."
+  },
+  {
+    "id": "doc_4",
+    "content": "Endpoint timeouts often occur when backend services exceed response SLAs. Check application logs, monitor upstream service performance, and implement retries with exponential backoff."
+  },
+  {
+    "id": "doc_5",
+    "content": "Database connection pool exhaustion often occurs when connections are not closed properly or queries are slow. Monitor connection usage, set maximum pool sizes, and investigate long-running queries."
+  },
+  {
+    "id": "doc_6",
+    "content": "For persistent payment gateway timeouts, verify API health, network latency, and service-level agreement breaches. Escalate to the concerned SRE on-call person if external API is unresponsive."
+  },
+  {
+    "id": "doc_7",
+    "content": "If MongoDB query latency spikes, check for slow queries with `db.currentOp()` and `explain()`. Revisit index usage, optimize aggregation pipelines, and scale vertically or horizontally."
+  },
+  {
+    "id": "doc_8",
+    "content": "If DynamoDB throttling errors occur, review CloudWatch metrics, increase provisioned capacity or enable on-demand mode, and batch requests to reduce burst load."
+  },
+  {
+    "id": "doc_9",
+    "content": "When Kubernetes pods OOMKill, check container memory limits, review memory usage trends, and optimize application memory footprint. Enable vertical pod autoscaling if applicable."
+  }
+]
