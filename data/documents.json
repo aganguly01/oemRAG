@@ -1,0 +1,42 @@
+[
+  {
+    "id": "doc1",
+    "content": "New Relic alerts when CPU usage exceeds 85% for more than 5 minutes."
+  },
+  {
+    "id": "doc2",
+    "content": "MongoDB replica set sync issues can cause read delays."
+  },
+  {
+    "id": "doc3",
+    "content": "Splunk logs indicate service availability with uptime percentages."
+  },
+  {
+    "id": "doc4",
+    "content": "Confluence page on escalation process during database outages."
+  },
+  {
+    "id": "doc5",
+    "content": "Response time spikes tracked via Splunk APM can highlight bottlenecks."
+  },
+  {
+    "id": "doc6",
+    "content": "Tracking client IP address helps in identifying suspicious activities."
+  },
+  {
+    "id": "doc7",
+    "content": "Payload encryption is enabled to secure sensitive data transmission."
+  },
+  {
+    "id": "doc8",
+    "content": "Service availability is monitored 24/7 using multiple monitoring tools."
+  },
+  {
+    "id": "doc9",
+    "content": "Database connection pool exhaustion can lead to application slowdowns."
+  },
+  {
+    "id": "doc10",
+    "content": "VPN access requests follow an approval workflow documented in Confluence."
+  }
+]
