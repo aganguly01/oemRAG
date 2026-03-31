@@ -20,3 +20,24 @@ Answer:"""
 
     st.subheader("Generated Answer (Claude)")
     st.write(output)
+
+import anthropic
+
+# Initialize client (replace with your real API key)
+client = anthropic.Anthropic(api_key="YOUR_API_KEY")
+
+# Sample input
+prompt = "Explain what a RAG system is in 2 simple sentences."
+
+# Call Claude
+response = client.messages.create(
+    model="claude-3-haiku-20240307",
+    max_tokens=150,
+    messages=[
+        {"role": "user", "content": prompt}
+    ]
+)
+
+# Print response
+print("Claude response:")
+print(response.content[0].text)
