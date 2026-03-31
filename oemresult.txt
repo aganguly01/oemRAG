@@ -41,3 +41,53 @@ response = client.messages.create(
 # Print response
 print("Claude response:")
 print(response.content[0].text)
+
+
+#!/usr/bin/env python3
+"""
+Claude API test program - Using Claude Sonnet 4.6
+Balanced performance for coding and general tasks
+"""
+
+import os
+from anthropic import Anthropic
+
+def main():
+    # Initialize the Anthropic client
+    client = Anthropic()
+    
+    # Define your test prompt
+    prompt = "What is the capital of France?"
+    
+    print("=" * 50)
+    print("Claude API Test - Sonnet 4.6")
+    print("=" * 50)
+    print(f"\nSending prompt: {prompt}\n")
+    
+    try:
+        # Make the API call using Claude Sonnet 4.6
+        message = client.messages.create(
+            model="claude-sonnet-4-6",  # Sonnet: balanced performance
+            max_tokens=1024,
+            messages=[
+                {"role": "user", "content": prompt}
+            ]
+        )
+        
+        # Extract and print the response
+        response_text = message.content[0].text
+        
+        print("Response from Claude Sonnet 4.6:")
+        print("-" * 50)
+        print(response_text)
+        print("-" * 50)
+        print(f"\nTokens used - Input: {message.usage.input_tokens}, Output: {message.usage.output_tokens}")
+        
+    except Exception as e:
+        print(f"Error calling Claude API: {e}")
+        print("\nMake sure you have:")
+        print("1. Set the ANTHROPIC_API_KEY environment variable")
+        print("2. Installed the anthropic package: pip install anthropic")
+
+if __name__ == "__main__":
+    main()
