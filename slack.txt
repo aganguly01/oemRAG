@@ -23,3 +23,41 @@ try:
 
 except SlackApiError as e:
     print(f"Error: {e.response['error']}")
+
+
+url = "https://slack.com/api/conversations.history"
+
+headers = {
+    "Authorization": "Bearer xoxb-your-token"
+}
+
+params = {
+    "channel": "C123456",
+    "limit": 5
+}
+
+response = requests.get(url, headers=headers, params=params)
+
+messages = response.json()["messages"]
+
+for msg in messages:
+    print(msg["text"])
+
+
+url = "https://slack.com/api/search.messages"
+
+headers = {
+    "Authorization": "Bearer xoxb-your-token"
+}
+
+params = {
+    "query": "deployment issue",
+    "count": 5
+}
+
+response = requests.get(url, headers=headers, params=params)
+
+matches = response.json()["messages"]["matches"]
+
+for m in matches:
+    print(m["text"])
