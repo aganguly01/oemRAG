@@ -1,0 +1,25 @@
+from slack_sdk import WebClient
+from slack_sdk.errors import SlackApiError
+
+# Replace with your bot token
+SLACK_BOT_TOKEN = "xoxb-your-token"
+
+client = WebClient(token=SLACK_BOT_TOKEN)
+
+channel_id = "C1234567890"  # replace with your channel ID
+
+try:
+    response = client.conversations_history(
+        channel=channel_id,
+        limit=5
+    )
+
+    messages = response["messages"]
+
+    for msg in messages:
+        print(f"User: {msg.get('user')}")
+        print(f"Text: {msg.get('text')}")
+        print("-" * 40)
+
+except SlackApiError as e:
+    print(f"Error: {e.response['error']}")
