@@ -1,0 +1,272 @@
+import chromadb
+import numpy as np
+from sklearn.feature_extraction.text import TfidfVectorizer
+import pickle, json, os
+
+VECTORIZER_FILE = "tfidf_vectorizer.pkl"
+
+def get_chroma_collection():
+    # Persists to ./chroma_db automatically — no file management needed
+    client = chromadb.PersistentClient(path="./chroma_db")
+    return client.get_or_create_collection(
+        name="slack_messages",
+        metadata={"hnsw:space": "cosine"}  # cosine similarity
+    )
+
+def build_or_update_chroma(new_messages, all_messages_for_fit=None):
+    collection = get_chroma_collection()
+
+    # Fit or load vectorizer
+    if os.path.exists(VECTORIZER_FILE) and all_messages_for_fit is None:
+        vectorizer = pickle.load(open(VECTORIZER_FILE, "rb"))
+    else:
+        # First time — fit on all messages
+        fit_texts  = [m["text"] for m in (all_messages_for_fit or new_messages)]
+        vectorizer = TfidfVectorizer(
+            max_features=10000, ngram_range=(1,2),
+            stop_words="english", min_df=2
+        )
+        vectorizer.fit(fit_texts)
+        pickle.dump(vectorizer, open(VECTORIZER_FILE, "wb"))
+
+    # Embed new messages
+    texts      = [m["text"] for m in new_messages]
+    tfidf_vecs = vectorizer.transform(texts).toarray().tolist()
+
+    # Add to Chroma — IDs are Slack timestamps (unique, dedup safe)
+    collection.upsert(           # upsert = add if new, update if exists
+        ids        = [m["meta"]["ts"] for m in new_messages],
+        embeddings = tfidf_vecs,
+        documents  = texts,
+        metadatas  = [m["meta"] for m in new_messages]
+    )
+    print(f"Collection now has {collection.count()} messages")
+    return vectorizer, collection
+
+def retrieve_chroma(query, vectorizer, collection, top_k=5):
+    q_vec = vectorizer.transform([query]).toarray().tolist()
+    results = collection.query(
+        query_embeddings = q_vec,
+        n_results        = top_k,
+        # Built-in metadata filtering — e.g. only search #engineering channel
+        # where = {"channel": "engineering"}
+    )
+    return [
+        {"text":  doc,
+         "meta":  meta,
+         "score": 1 - dist}   # Chroma returns distance, convert to similarity
+        for doc, meta, dist in zip(
+            results["documents"][0],
+            results["metadatas"][0],
+            results["distances"][0]
+        )
+    ]
+
+Arnab
+
+import json, os, time
+import numpy as np
+import faiss
+from sentence_transformers import SentenceTransformer
+from slack_sdk import WebClient
+
+STATE_FILE  = "messages.json"
+INDEX_FILE  = "index.faiss"
+TS_FILE     = "latest_ts.txt"
+
+slack = WebClient(token=os.environ["SLACK_TOKEN"])
+model = SentenceTransformer("all-MiniLM-L6-v2")
+
+# ── FETCH DELTA FROM SLACK ─────────────────────────────────
+def fetch_messages(channel_id, oldest_ts=None):
+    """Fetch all messages after oldest_ts. If None, fetch everything."""
+    messages, cursor = [], None
+    while True:
+        kwargs = {"channel": channel_id, "limit": 200}
+        if oldest_ts:
+            kwargs["oldest"] = oldest_ts   # Slack returns only newer msgs
+        if cursor:
+            kwargs["cursor"] = cursor
+        resp = slack.conversations_history(**kwargs)
+        for msg in resp["messages"]:
+            if not msg.get("subtype") and msg.get("text","").strip():
+                messages.append({
+                    "text": msg["text"].strip(),
+                    "meta": {
+                        "user":    msg.get("user", "unknown"),
+                        "ts":      msg["ts"],
+                        "channel": channel_id
+                    }
+                })
+        if not resp["response_metadata"].get("next_cursor"):
+            break
+        cursor = resp["response_metadata"]["next_cursor"]
+    return messages
+
+# ── BUILD OR UPDATE INDEX ──────────────────────────────────
+def build_or_update_index(channel_id):
+    index_exists = os.path.exists(INDEX_FILE)
+
+    if index_exists:
+        # DELTA path — load existing state
+        index    = faiss.read_index(INDEX_FILE)
+        messages = json.load(open(STATE_FILE))
+        latest_ts = open(TS_FILE).read().strip()
+
+        print(f"Fetching messages after ts={latest_ts}...")
+        new_msgs = fetch_messages(channel_id, oldest_ts=latest_ts)
+
+        if not new_msgs:
+            print("No new messages — index is up to date")
+            return index, messages
+
+        # Embed only the NEW messages (could be 5 or 500, not 50,000)
+        new_texts = [m["text"] for m in new_msgs]
+        new_vecs  = model.encode(new_texts)
+        new_vecs  = new_vecs / np.linalg.norm(new_vecs, axis=1, keepdims=True)
+
+        index.add(new_vecs.astype("float32"))   # ← incremental add
+        messages.extend(new_msgs)
+
+    else:
+        # FULL BUILD path — first time only
+        print("Building index from scratch...")
+        all_msgs = fetch_messages(channel_id)
+        texts    = [m["text"] for m in all_msgs]
+        vecs     = model.encode(texts, show_progress_bar=True)
+        vecs     = vecs / np.linalg.norm(vecs, axis=1, keepdims=True)
+
+        dim      = vecs.shape[1]
+        index    = faiss.IndexFlatIP(dim)
+        index.add(vecs.astype("float32"))
+        messages = all_msgs
+
+    # Save updated state
+    faiss.write_index(index, INDEX_FILE)
+    json.dump(messages, open(STATE_FILE, "w"))
+
+    # Save the latest ts so next run knows where to start
+    latest_ts = max(m["meta"]["ts"] for m in messages)
+    open(TS_FILE, "w").write(latest_ts)
+
+    print(f"Index now has {index.ntotal} vectors")
+    return index, messages
+
+//Streamlit
+
+import streamlit as st
+import json
+import numpy as np
+import faiss
+from sentence_transformers import SentenceTransformer
+import anthropic
+
+# ── 1. LOAD & CLEAN MESSAGES ──────────────────────────────
+def load_slack_messages(path="slack_history.json"):
+    with open(path) as f:
+        raw = json.load(f)
+    messages = []
+    for msg in raw:
+        # skip bot messages, empty messages, join/leave events
+        if msg.get("subtype") or not msg.get("text", "").strip():
+            continue
+        text = msg["text"].strip()
+        meta = {
+            "user": msg.get("user", "unknown"),
+            "ts":   msg.get("ts", ""),
+            "channel": msg.get("channel", "general"),
+        }
+        messages.append({"text": text, "meta": meta})
+    return messages
+
+# ── 2. BUILD FAISS INDEX ───────────────────────────────────
+# st.cache_resource means this runs ONCE at startup, not every query
+@st.cache_resource
+def build_index():
+    model = SentenceTransformer("all-MiniLM-L6-v2")  # free, fast, 80MB
+    messages = load_slack_messages()
+
+    texts = [m["text"] for m in messages]
+    embeddings = model.encode(texts, show_progress_bar=True)
+    embeddings = embeddings / np.linalg.norm(          # normalise for cosine
+        embeddings, axis=1, keepdims=True
+    )
+
+    # Inner product on normalised vectors = cosine similarity
+    dim = embeddings.shape[1]
+    index = faiss.IndexFlatIP(dim)
+    index.add(embeddings.astype("float32"))
+
+    return model, index, messages
+
+# ── 3. RETRIEVE TOP-K ──────────────────────────────────────
+def retrieve(query, model, index, messages, top_k=5):
+    q_vec = model.encode([query])
+    q_vec = q_vec / np.linalg.norm(q_vec, axis=1, keepdims=True)
+    scores, indices = index.search(q_vec.astype("float32"), top_k)
+
+    results = []
+    for score, idx in zip(scores[0], indices[0]):
+        results.append({
+            "text":  messages[idx]["text"],
+            "meta":  messages[idx]["meta"],
+            "score": float(score)          # already 0–1 (cosine)
+        })
+    return results
+
+# ── 4. BUILD PROMPT ────────────────────────────────────────
+def build_prompt(query, results):
+    context = ""
+    for i, r in enumerate(results, 1):
+        context += (
+            f"\nMessage {i} "
+            f"[user: {r['meta']['user']} | "
+            f"channel: #{r['meta']['channel']} | "
+            f"relevance: {r['score']:.2f}]:\n"
+            f"{r['text']}\n"
+        )
+    return f"""You are a helpful engineering assistant.
+Answer the question using ONLY the Slack messages below.
+If the messages don't contain enough information, say so.
+Always mention which message your answer came from.
+
+QUESTION: {query}
+
+SLACK CONTEXT:
+{context}"""
+
+# ── 5. STREAMLIT UI ────────────────────────────────────────
+st.title("Slack Knowledge Assistant")
+
+model, index, messages = build_index()
+st.caption(f"Loaded {len(messages)} messages into memory")
+
+query = st.text_input("Ask a question about your team's Slack history")
+
+if query:
+    results = retrieve(query, model, index, messages, top_k=5)
+
+    # Show retrieved messages so user can verify
+    with st.expander("Top 5 matching Slack messages"):
+        for r in results:
+            st.markdown(
+                f"**Score: {r['score']:.2f}** | "
+                f"#{r['meta']['channel']} | "
+                f"{r['meta']['user']}"
+            )
+            st.write(r["text"])
+            st.divider()
+
+    # Call Claude with streaming
+    client = anthropic.Anthropic()
+    prompt = build_prompt(query, results)
+
+    st.markdown("### Answer")
+    with st.chat_message("assistant"):
+        with client.messages.stream(
+            model="claude-sonnet-4-6",
+            max_tokens=1024,
+            messages=[{"role": "user", "content": prompt}]
+        ) as stream:
+            st.write_stream(stream.text_stream)
+
