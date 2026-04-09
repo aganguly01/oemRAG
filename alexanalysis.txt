@@ -1,0 +1,32 @@
+EASE has → application_ref_id
+Alexandria needs → account_id
+Mapping exists via → encrypted account_ref_id
+Decryption must happen → backend only (not Angular/UI)
+Goal → fetch student_grad_date (and similar features)
+
+
+Latency & Performance
+Very important for decisioning:
+What is the SLA for:
+decryption API
+Alexandria feature API
+Are features:
+real-time computed?
+cached?
+Ask directly:
+“Can this flow support real-time credit decisioning latency requirements?”
+
+ Error Handling (Often Missed)
+Ask:
+What happens if:
+decryption fails?
+account_id not found?
+Alexandria returns null?
+Example:
+Plain text
+student_grad_date = null
+👉 What should EASE do?
+
+EASE BE → decrypt → call Alexandria → return features
+
+EASE BE → send encrypted ID → Alexandria resolves internally
